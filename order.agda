@@ -1,15 +1,15 @@
-data Bool : Set where
-  true : Bool
-  false : Bool
+data Boole : Set where
+  true : Boole
+  false : Boole
 
-not : Bool -> Bool
+not : Boole -> Boole
 not true = false
 not false = true
 
-myBool : Bool
-myBool = not true
+myBoole : Boole
+myBoole = not true
 
-and : Bool -> Bool -> Bool
+and : Boole -> Boole -> Boole
 and true y = y
 and false y = false
 
@@ -24,7 +24,7 @@ myNat = 1+ (1+ (1+ (1+ (1+ zero))))
 
 {-# BUILTIN NATURAL Nat #-}
 
-_<=_ : Nat -> Nat -> Bool
+_<=_ : Nat -> Nat -> Boole
 zero <= y = true
 1+ x <= zero = false
 1+ x <= 1+ y = x <= y
@@ -38,13 +38,13 @@ infixr 5 _::_
 myList : List
 myList = 1 :: 2 :: nil
 
-data Tree : Set where
-  leaf : Tree
-  node : (p : Nat) -> (lt rt : Tree) -> Tree
-
 append : List -> List -> List
 append nil l = l
 append (x :: xs) l = x :: (append xs l)
+
+data Tree : Set where
+  leaf : Tree
+  node : (p : Nat) -> (lt rt : Tree) -> Tree
 
 toList : Tree -> List
 toList leaf = nil
@@ -72,17 +72,33 @@ foldr : {X : Set} -> (Nat -> X -> X) -> X -> List -> X
 foldr f x nil = x
 foldr f y (x :: xs) = f x (foldr f y xs)
 
-numbers : List
-numbers = 14 :: 12 :: 68 :: 28 :: 3 :: 70 :: 30 :: 9 :: 8 :: 2 :: nil
-
 -- toList (fromList2 numbers)
 
 sort : List -> List
 sort xs = toList (foldr insert leaf xs)
 
-data _<='_ : Nat -> Nat -> Set where
-  0<='  : (y : Nat) -> 0 <=' y
-  1+<=' : (x y : Nat) -> x <=' y -> (1+ x) <=' (1+ y)
+numbers : List
+numbers = 14 :: 12 :: 68 :: 28 :: 3 :: 70 :: 30 :: 9 :: 8 :: 2 :: nil
+
+
+-- ========== Truth as Type (rather than value) ==========
+
+-- 1st definition
+-- data _<='_ : Nat -> Nat -> Set where
+--   0<='  : (y : Nat) -> 0 <=' y
+--   1+<=' : (x y : Nat) -> x <=' y -> (1+ x) <=' (1+ y)
+
+-- Reformulation of <=' as Zero,One-valued function:
+-- The main (only?) benefit is to slightly simplify compare
+
+Two = Boole
+data One : Set where tt : One
+data Zero : Set where
+
+_<='_ : Nat -> Nat -> Set
+zero <=' y = One
+1+ x <=' zero = Zero
+1+ x <=' 1+ y = x <=' y
 
 data Bound : Set where
   bottom : Bound
@@ -106,11 +122,11 @@ data Total (x y : Nat) : Set where
   is>= : y <=' x -> Total x y
 
 compare : (x y : Nat) -> Total x y
-compare zero y = is<= (0<=' y)
-compare (1+ x) zero = is>= (0<=' (1+ x))
+compare zero y = is<= tt
+compare (1+ x) zero = is>= tt
 compare (1+ x) (1+ y) with compare x y
-... | is<= xy = is<= (1+<=' x y xy)
-... | is>= yx = is>= (1+<=' y x yx)
+... | is<= xy = is<= xy
+... | is>= yx = is>= yx
 
 
 insertBST : {l u : Bound}
@@ -124,6 +140,7 @@ insertBST x lx xu (node y lt rt) with compare x y
 ... | is<= xy = node y (insertBST x lx (<B< x y xy) lt) rt
 ... | is>= yx = node y lt (insertBST x (<B< y x yx) xu rt)
 
+-- REMINDER:
 -- insert : Nat → Tree → Tree
 -- insert n leaf = node n leaf leaf
 -- insert n (node p lt rt) with n <= p
