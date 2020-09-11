@@ -125,39 +125,6 @@ data BST (l u : Bound) : Set where
     -> BST l u
 
 
--- BEGIN aside --------------------------------------------------
-
-trans<=B : {l m u : Bound} -> l <B= m -> m <B= u -> l <B= u
-trans<=B lm mu = {!!}
-
-nonEmpty : {l u : Bound} (t : BST l u) -> l <B= u
-nonEmpty (leaf lu) = lu
-nonEmpty (node p lt rt) = {!!}
-
-data _inT_ {l u : Bound} (x : Nat) : (t : BST l u) -> Set where
-  inNode :
-       (lt : BST l (value x))
-    -> (rt : BST (value x) u)
-    -> x inT (node x lt rt)
-  inL : (y : Nat)
-    -> (lt : BST l (value y))
-    -> (rt : BST (value y) u)
-    -> (x inT lt)
-    -> x inT (node y lt rt)
-  inR : (y : Nat)
-    -> (lt : BST l (value y))
-    -> (rt : BST (value y) u)
-    -> (x inT rt)
-    -> x inT (node y lt rt)
-
-boundedL : {l u : Bound} -> (t : BST l u) -> (x : Nat) -> x inT t -> l <B= value x
-boundedL {l} {u} (node p lt rt) .p (inNode .lt .rt) = {!!}
-boundedL {l} {u} (node p lt rt) x (inL .p .lt .rt xint) = {!!}
-boundedL {l} {u} (node p lt rt) x (inR .p .lt .rt xint) = {!!}
-
-
--- END aside --------------------------------------------------
-
 data Total (x y : Nat) : Set where
   is<= : x <=' y -> Total x y
   is>= : y <=' x -> Total x y
