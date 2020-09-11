@@ -89,10 +89,11 @@ numbers = 14 :: 12 :: 68 :: 28 :: 3 :: 70 :: 30 :: 9 :: 8 :: 2 :: nil
 --   1+<=' : (x y : Nat) -> x <=' y -> (1+ x) <=' (1+ y)
 
 -- Reformulation of <=' as Zero,One-valued function:
--- The main (only?) benefit is to slightly simplify compare
+-- The main (only?) benefit is to slightly simplify compare...
+-- ... and we never need it in pattern mathcing "on the left".
 
 Two = Boole
-data One : Set where tt : One
+data One : Set where unit : One
 data Zero : Set where
 
 _<='_ : Nat -> Nat -> Set
@@ -105,10 +106,16 @@ data Bound : Set where
   value : Nat -> Bound
   top : Bound
 
-data _<B=_ : Bound -> Bound -> Set where
-  [<B : (y : Bound) -> bottom <B= y
-  <B< : (x y : Nat) -> x <=' y -> (value x) <B= (value y)
-  <B] : (x : Bound) -> x <B= top
+-- data _<B=_ : Bound -> Bound -> Set where
+--   [<B : (y : Bound) -> bottom <B= y
+--   <B< : (x y : Nat) -> x <=' y -> (value x) <B= (value y)
+--   <B] : (x : Bound) -> x <B= top
+
+_<B=_ : Bound -> Bound -> Set
+bottom  <B= _       = One
+value x <B= value y = x <=' y
+_       <B= top     = One
+_       <B= _       = Zero
 
 data BST (l u : Bound) : Set where
   leaf : l <B= u -> BST l u
@@ -117,13 +124,47 @@ data BST (l u : Bound) : Set where
     -> BST (value p) u
     -> BST l u
 
+
+-- BEGIN aside --------------------------------------------------
+
+trans<=B : {l m u : Bound} -> l <B= m -> m <B= u -> l <B= u
+trans<=B lm mu = {!!}
+
+nonEmpty : {l u : Bound} (t : BST l u) -> l <B= u
+nonEmpty (leaf lu) = lu
+nonEmpty (node p lt rt) = {!!}
+
+data _inT_ {l u : Bound} (x : Nat) : (t : BST l u) -> Set where
+  inNode :
+       (lt : BST l (value x))
+    -> (rt : BST (value x) u)
+    -> x inT (node x lt rt)
+  inL : (y : Nat)
+    -> (lt : BST l (value y))
+    -> (rt : BST (value y) u)
+    -> (x inT lt)
+    -> x inT (node y lt rt)
+  inR : (y : Nat)
+    -> (lt : BST l (value y))
+    -> (rt : BST (value y) u)
+    -> (x inT rt)
+    -> x inT (node y lt rt)
+
+boundedL : {l u : Bound} -> (t : BST l u) -> (x : Nat) -> x inT t -> l <B= value x
+boundedL {l} {u} (node p lt rt) .p (inNode .lt .rt) = {!!}
+boundedL {l} {u} (node p lt rt) x (inL .p .lt .rt xint) = {!!}
+boundedL {l} {u} (node p lt rt) x (inR .p .lt .rt xint) = {!!}
+
+
+-- END aside --------------------------------------------------
+
 data Total (x y : Nat) : Set where
   is<= : x <=' y -> Total x y
   is>= : y <=' x -> Total x y
 
 compare : (x y : Nat) -> Total x y
-compare zero y = is<= tt
-compare (1+ x) zero = is>= tt
+compare zero y = is<= unit
+compare (1+ x) zero = is>= unit
 compare (1+ x) (1+ y) with compare x y
 ... | is<= xy = is<= xy
 ... | is>= yx = is>= yx
@@ -135,24 +176,61 @@ insertBST : {l u : Bound}
   -> (value x) <B= u
   -> BST l u
   -> BST l u
-insertBST x lx xu (leaf y) = node x (leaf lx) (leaf xu)
+insertBST x lx xu (leaf lu) = node x (leaf lx) (leaf xu)
 insertBST x lx xu (node y lt rt) with compare x y
-... | is<= xy = node y (insertBST x lx (<B< x y xy) lt) rt
-... | is>= yx = node y lt (insertBST x (<B< y x yx) xu rt)
+... | is<= xy = node y (insertBST x lx xy lt) rt
+... | is>= yx = node y lt (insertBST x yx xu rt)
 
--- REMINDER:
--- insert : Nat → Tree → Tree
--- insert n leaf = node n leaf leaf
--- insert n (node p lt rt) with n <= p
--- ... | true = node p (insert n lt) rt
--- ... | false = node p lt (insert n rt)
+{- REMINDER
+insert : Nat → Tree → Tree
+insert n leaf = node n leaf leaf
+insert n (node p lt rt) with n <= p
+... | true = node p (insert n lt) rt
+... | false = node p lt (insert n rt)
+-}
 
-myBST : BST bottom top
---myBST = leaf ([<B top)
-myBST = insertBST 1 ([<B (value 1)) (<B] (value 1))
-  (insertBST 5 ([<B (value 5)) (<B] (value 5))
-    (insertBST 3 ([<B (value 3)) (<B] (value 3))
-      (leaf ([<B top))))
+myBST myBST2 : BST bottom top
+myBST = node 3 (node 1 (leaf unit) (leaf unit)) (node 5 (leaf unit) (leaf unit))
+myBST2 = insertBST 5 unit unit (insertBST 1 unit unit (insertBST 3 unit unit (leaf unit)))
 
--- dara OList (l u : Bound) : Set where
---   nil : l <B
+-- sort xs = toList (foldr insert leaf xs)
+fromListBST : List -> BST bottom top
+-- fromListBST = λ l → foldr (λ x m → insertBST x unit unit m) (leaf unit) l
+fromListBST = foldr (λ x → insertBST x unit unit) (leaf unit)
+
+-- fromListBST numbers
+
+data OList (l u : Bound) : Set where
+  nil : l <B= u -> OList l u
+  cons : (x : Nat) -> l <B= value x -> OList (value x) u -> OList l u
+
+myOList : OList bottom top
+myOList = cons 1 unit (cons 3 unit (cons 5 unit (nil unit)))
+
+{- REMINDER
+append : List -> List -> List
+append nil l = l
+append (x :: xs) l = x :: (append xs l)
+-}
+
+-- ... "with weird f"
+appendOList : {l n u : Bound}
+  -> OList l n
+  -> ({m : Bound} -> m <B= n -> OList m u)
+  -> OList l u
+appendOList (nil x) f = f x
+appendOList (cons x lx xs) f = cons x lx (appendOList xs (λ mn → f mn))
+
+{-
+toList : Tree -> List
+toList leaf = nil
+toList (node p lt rt) = append (toList lt) (p :: toList rt)
+-}
+
+toOListBST : {l u : Bound} -> BST l u -> OList l u
+toOListBST (leaf lu) = nil lu
+toOListBST (node x lt rt) = appendOList (toOListBST lt) (λ mx → cons x mx (toOListBST rt))
+
+sortBST : List -> OList bottom top
+sortBST l = toOListBST (fromListBST l) 
+
