@@ -214,8 +214,54 @@ _/_ : ℕ → ℕ → Maybe ℕ
 m / zero = none
 m / succ n = just (/-helper zero n m n)
 
+
+-- To show interesting properties of / we need more "basic" arithmetic.
+
+0+ : (n : ℕ) → zero + n ≡ n
+0+ zero = refl
+0+ (succ n) = cong (zero + n) n succ (0+ n)
+
+1+ : (n : ℕ) → (succ zero) + n ≡ succ n
+1+ zero = refl
+1+ (succ n) = cong (succ zero + n) (succ n) succ (1+ n)
+
+comm+ : (x y : ℕ) → x + y ≡ y + x
+comm+ zero zero = refl
+comm+ zero (succ y) = cong (zero + y) y succ (0+ y)
+comm+ (succ x) zero = cong x (zero + x) succ (symm (zero + x) x (0+ x))
+comm+ (succ x) (succ y) = cong {!!} {!!} succ (comm+ {!!} {!!})
+
+0* : (n : ℕ) → zero * n ≡ zero
+0* zero = refl
+0* (succ n) = trans (zero + (zero * n)) (zero * n) zero (0+ (zero * n)) (0* n)
+
+1* : (n : ℕ) → (succ zero) * n ≡ n
+1* zero = refl
+1* (succ n) = trans (succ zero + (succ zero * n))
+                    (succ zero + n)
+                    (succ n)
+                    (trans (succ zero + (succ zero * n))
+                           (succ zero + n)
+                           (succ zero + n)
+                           (cong (succ zero * n)
+                                 n
+                                 (λ x → succ zero + x)
+                                 (1* n))
+                           refl)
+                    (1+ n)
+
+------------------------------
+
 */ : (m n : ℕ) → (m * (succ n)) / (succ n) ≡ just m
-*/ zero zero = refl
-*/ zero (succ n) = cong {!!} {!!} just {!!}
+*/ zero n = cong (/-helper zero n (zero + (zero * n)) n) zero just h1 where
+  h1 : /-helper zero n (zero + (zero * n)) n ≡ zero
+  h1 = trans (/-helper zero n (zero + (zero * n)) n)
+             (/-helper zero n zero n)
+             zero
+             (cong ((zero + (zero * n)))
+                   zero
+                   (λ x → /-helper zero n x n)
+                   (cong (zero * n) zero (λ x → zero + x) (0* n)))
+             refl
 */ (succ m) zero = {!!}
 */ (succ m) (succ n) = {!!}

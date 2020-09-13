@@ -1,0 +1,9 @@
+Making this work under Arch...
+
+- created ~/.agda/libraries and ~/.agda/defaults
+
+----------------------------------------------------------------------
+
+The following didn't work, because of problems installing GHC:
+- $ pacman -Sy stack
+- $ stack exec --package ieee754 --package text -- agda -c hello-world.agda
