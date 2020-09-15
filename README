@@ -1,8 +1,16 @@
+* CONTENTS
+  - BooleModule.agda: Peter Dybjer's tutoral:
+    - Boole, Nat, BinaryNumbers; arithmetic, logic
+  - hello_not.agda: m + m = 2 * m
+  - odd_and_even.agda: +, *, odd, even; =, =~; cong, symm, ...; -, /
+  - order.agda: correct by design list and tree algorithms
+  - test.agda: (small) Boole and Nat example
+
+----------------------------------------------------------------------
+
 Making this work under Arch...
 
 - created ~/.agda/libraries and ~/.agda/defaults
-
-----------------------------------------------------------------------
 
 The following didn't work, because of problems installing GHC:
 - $ pacman -Sy stack
