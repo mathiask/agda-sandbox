@@ -5,6 +5,8 @@
   - odd_and_even.agda: +, *, odd, even; =, =~; cong, symm, ...; -, /
   - order.agda: correct by design list and tree algorithms
   - test.agda: (small) Boole and Nat example
+  - intro-cr1.agda: Boole, Nat, <=, Total, Decidable, NList, append, length, List
+  - fin.agda: finite sets and there embedding in Nat (Prop as an aside)
 
 ----------------------------------------------------------------------
 
