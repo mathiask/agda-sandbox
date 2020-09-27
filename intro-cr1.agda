@@ -22,6 +22,11 @@ data Nat : Set where
   zero : Nat
   succ : Nat → Nat
 
+-- Aside: Function types are also sets
+_ : Set
+_ = Nat → Nat
+
+
 _+_ : Nat → Nat → Nat
 zero + y = y
 succ x + y = succ (x + y)
@@ -32,57 +37,80 @@ three = succ (succ (succ zero)) -- {-s 3}
 
 -- two + three
 
+five = two + three
+
+-- ============================================================
+
+-- This is needed in several spots in both branches,
+-- introduce when needed
+
+data _==_ (x : Nat) : Nat → Set where
+  refl : x == x
+
+infix 4 _==_
+
+-- Examples:
+_ : two + two == succ (succ (succ (succ zero)))
+_ = refl
+
 -------------------- Math/Logic branch
 
-data _≤_ : Nat → Nat → Set where
-  o≤ : (y : Nat) →  zero ≤ y
-  s≤ : (x y : Nat) → x ≤ y → succ x ≤ succ y
+data _<_ : Nat → Nat → Set where
+  o< : (y : Nat) →  zero < succ y
+  s< : (x y : Nat) → x < y → succ x < succ y
 
-infix 4 _≤_
+infix 4 _<_
 
-_ : succ zero ≤ three
-_ = s≤ zero (succ (succ zero)) (o≤ (succ (succ zero))) -- C-a
+_ : succ zero < three
+_ = s< zero (succ (succ zero)) (o< (succ zero)) -- C-a
+
+data TotallyOrdered (x y : Nat) : Set where
+  x<y : x < y → TotallyOrdered x y
+  x=y : x == y → TotallyOrdered x y
+  x>y : y < x → TotallyOrdered x y
+
+compare : (x y : Nat) → TotallyOrdered x y
+compare zero zero = x=y refl
+compare zero (succ y) = x<y (o< y)
+compare (succ x) zero = x>y (o< x)
+compare (succ x) (succ y) with compare x y
+... | x<y xy = x<y (s< x y xy)
+... | x=y refl = x=y refl
+... | x>y yx = x>y (s< y x yx)
+
 
 data False : Set where
 
 ¬_ : Set → Set
 ¬ A = A → False
 
--- Function types are also sets
-_ : Set
-_ = Nat → Nat
+_ : ¬(two + two == five)
+_ = λ () -- C-a
 
-not-less : ¬ (two ≤ succ zero)
-not-less (s≤ .(succ zero) .zero ())
+not-less : ¬ (two < succ zero)
+not-less (s< .(succ zero) .zero ())
 
-data TotallyOrdered (x y : Nat) : Set where
-  x<y : x ≤ y → TotallyOrdered x y
-  x>y : y ≤ x → TotallyOrdered x y
-
-compare : (x y : Nat) → TotallyOrdered x y
--- compare x y = ?
-compare zero y = x<y (o≤ y)
-compare (succ x) zero = x>y (o≤ (succ x))
-compare (succ x) (succ y) with compare x y
-... | x<y xy = x<y (s≤ x y xy)
-... | x>y yx = x>y (s≤ y x yx)
 
 data Decidable (A : Set) : Set where
   yes : A → Decidable A
   no : ¬ A → Decidable A
 
 -- BEGIN Introduce at (1)
-s¬≤ : (x y : Nat) → ¬(x ≤ y) → ¬(succ x ≤ succ y)
-s¬≤ x y ¬x≤y sx≤sy = s¬≤ x y ¬x≤y sx≤sy
+¬x<x : (x : Nat) → ¬ (x < x)
+¬x<x (succ x) (s< x x xx) = ¬x<x x xx
+
+-- (2)
+<-not-sym : (x y : Nat) → x < y → ¬(y < x)
+<-not-sym .(succ x) .(succ y) (s< x y xy) (s< .y .x yx) = <-not-sym x y xy yx
 -- END
 
-decide≤ : (x y : Nat) → Decidable (x ≤ y)
-decide≤ zero y = yes (o≤ y)
-decide≤ (succ x) zero = no (λ ())
-decide≤ (succ x) (succ y) with decide≤ x y
-... | yes x≤y = yes (s≤ x y x≤y)
-{- here (1) -}
-... | no ¬x≤y = no (s¬≤ x y ¬x≤y)
+decide< : (x y : Nat) → Decidable (x < y)
+decide< x y with compare x y
+... | x<y xy = yes xy
+-- here (1)
+... | x=y refl = no (¬x<x x)
+-- here (2)
+... | x>y yx = no (<-not-sym y x yx)
 
 
 -------------------- CS branch
@@ -97,11 +125,6 @@ data NList : Set where
 append : NList → NList → NList
 append nil l2 = l2
 append (cons x l1) l2 = cons x (append l1 l2)
-
-data _==_ (x : Nat) : Nat → Set where
-  refl : x == x
-
-infix 4 _==_
 
 length : NList → Nat
 length nil = zero
