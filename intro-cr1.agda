@@ -8,6 +8,8 @@ not : Boole → Boole
 not true = false
 not false = true
 
+-- not true
+
 -- and : Boole → Boole → Boole
 -- and true y = y
 -- and false y = false
@@ -15,8 +17,6 @@ not false = true
 _&&_ : Boole → Boole → Boole
 true && y = y
 false && y = false
-
--- not true
 
 data Nat : Set where
   zero : Nat
@@ -49,9 +49,31 @@ data _==_ (x : Nat) : Nat → Set where
 
 infix 4 _==_
 
+-- We could also compare this intentional equality to an
+-- inductively defined equality.
+
 -- Examples:
 _ : two + two == succ (succ (succ (succ zero)))
 _ = refl
+
+-- ============================================================
+
+-- Level 2
+-- introduce when needed
+
+data _≡_ {A : Set} (x : A) : A → Set where
+  refl : x ≡ x
+infix 4 _≡_
+
+{-# BUILTIN EQUALITY _≡_ #-}
+
+record _~=~_ (A B : Set) : Set where
+  field
+    to   : A → B
+    from : B → A
+    from∘to : (x : A) → from (to x) ≡ x
+    to∘from : (y : B) → to (from y) ≡ y
+
 
 -------------------- Math/Logic branch
 
@@ -112,8 +134,47 @@ decide< x y with compare x y
 -- here (2)
 ... | x>y yx = no (<-not-sym y x yx)
 
+-- -------------------- Level 2 --------------------
 
--------------------- CS branch
+data _≤_ : Nat → Nat → Set where
+  o≤ : (y : Nat) →  zero ≤ y
+  s≤ : (x y : Nat) → x ≤ y → succ x ≤ succ y
+
+-- (10)
+refl≤ : (x : Nat) → x ≤ x
+refl≤ zero = o≤ zero
+refl≤ (succ x) = s≤ x x (refl≤ x)
+
+data _⊎_ (A B : Set) : Set where
+  left : A → A ⊎ B
+  right : B → A ⊎ B
+
+<≤ : (x y : Nat) → ((x < y) ⊎ (x == y)) ~=~ (x ≤ y)
+<≤ x y = record {
+  to = myto;
+  from = myfrom ;
+  from∘to = ft ;
+  to∘from = tf} where
+    myto : {x y : Nat} → ((x < y) ⊎ (x == y)) → (x ≤ y)
+    myto (left (o< y)) = o≤ (succ y)
+    myto (left (s< x y xy)) = s≤ x y (myto (left xy))
+    -- (10)
+    myto {x} (right refl) = refl≤ x
+    myfrom : {x y : Nat} → (x ≤ y) → ((x < y) ⊎ (x == y))
+    myfrom (o≤ zero) = right refl
+    myfrom (o≤ (succ y)) = left (o< y)
+    myfrom (s≤ x y xy) with myfrom {x} {y} xy
+    ... | left a = left (s< x y a)
+    ... | right refl = right refl
+    ft : {x y : Nat} (xy : (x < y) ⊎ (x == y)) → myfrom(myto xy) ≡ xy
+    ft (left (o< _)) = refl
+    ft (left (s< x y a)) rewrite (ft (left a)) = refl
+    ft {zero} {.zero} (right refl) = refl
+    ft {succ x} {succ x} (right refl) rewrite (ft (right refl)) = {!!}
+    tf : {x y : Nat} (xy : x ≤ y) → myto(myfrom xy) ≡ xy
+    tf xy = {!!}
+
+-- ==================== CS branch ====================
 
 data NList : Set where
   nil : NList
@@ -148,3 +209,5 @@ append→add (cons x l1) l2 = cong (length (append l1 l2)) (length l1 + length l
 data List (A : Set) : Set where
   nil : List A
   cons : A → List A → List A
+
+-- -------------------- Level 2 --------------------
