@@ -68,7 +68,7 @@ infix 4 _≡_
 {-# BUILTIN EQUALITY _≡_ #-}
 
 
--------------------- Math/Logic branch
+-------------------- Math/Logic branch: <, total order, ¬, Decidable
 
 data _<_ : Nat → Nat → Set where
   o< : (y : Nat) →  zero < succ y
@@ -127,19 +127,18 @@ decide< x y with compare x y
 -- here (2)
 ... | x>y yx = no (<-not-sym y x yx)
 
--- -------------------- Level 2 --------------------
+-- -------------------- Level 2: ≤, ⊎, ≤ = < ⊎≡ --------------------
 
 data _≤_ : Nat → Nat → Set where
-  o≤ : (y : Nat) →  zero ≤ y
+  0≤ : (y : Nat) →  zero ≤ y
   s≤ : (x y : Nat) → x ≤ y → succ x ≤ succ y
 
--- (10)
 refl≤ : (x : Nat) → x ≤ x
-refl≤ zero = o≤ zero
+refl≤ zero = 0≤ zero
 refl≤ (succ x) = s≤ x x (refl≤ x)
 
 <→≤ : (x y : Nat) → x < y → x ≤ y
-<→≤ zero (succ y) (o< y) = o≤ (succ y)
+<→≤ zero (succ y) (o< y) = 0≤ (succ y)
 <→≤ (succ x) (succ y) (s< x y xy) = s≤ x y (<→≤ x y xy)
 
 =→≤ : (x y : Nat) → x == y → x ≤ y
@@ -150,13 +149,13 @@ data _⊎_ (A B : Set) : Set where
   right : B → A ⊎ B
 
 ≤→<= : (x y : Nat) → x ≤ y → (x < y) ⊎ (x == y)
-≤→<= zero zero (o≤ zero) = right refl
-≤→<= zero (succ y) (o≤ (succ y)) = left (o< y)
+≤→<= zero zero (0≤ zero) = right refl
+≤→<= zero (succ y) (0≤ (succ y)) = left (o< y)
 ≤→<= (succ x) (succ y) (s≤ x y xy) with ≤→<= x y xy
 ... | left l = left (s< x y l)
 ... | right refl = right refl
 
-<=→≤ : (x y : Nat) → (x < y) ⊎ (x == y) → x ≤ y 
+<=→≤ : (x y : Nat) → (x < y) ⊎ (x == y) → x ≤ y
 <=→≤ x y (left xy) = <→≤ x y xy
 <=→≤ x y (right refl) = =→≤ x x refl
 
@@ -196,7 +195,7 @@ data List (A : Set) : Set where
   nil : List A
   cons : A → List A → List A
 
--- -------------------- Level 2 --------------------
+-- -------------------- Level 2: Nat = List Unit --------------------
 
 data Unit : Set where
   ∗ : Unit
@@ -235,7 +234,66 @@ appendIsAdd : (l1 l2 : List Unit) → toNat (l1 ++ l2) ≡ (toNat l1) + (toNat l
 appendIsAdd nil l2 = refl
 appendIsAdd (cons ∗ l1) l2 rewrite appendIsAdd l1 l2 = refl
 
--- -------------------- Level 3 --------------------
+-- -------------------- Level 3a: ordered lists --------------------
+
+{- Ordered Lists without a bound type (for simplicity
+   Need Maths branch including level 2
+-}
+
+{-# BUILTIN NATURAL Nat #-}
+
+data OList (l u : Nat) : Set where
+  nil : l ≤ u → OList l u
+  cons : (x : Nat) → l ≤ x → OList x u → OList l u
+
+myOList : OList 0 10
+myOList = cons 1 (0≤ 1)
+  (cons 3 (s≤ zero 2 (0≤ 2))
+  (cons 5 (s≤ 2 4 (s≤ 1 3 (s≤ zero 2 (0≤ 2)))) (nil (s≤ 4 9 (s≤ 3 8 (s≤ 2 7 (s≤ 1 6 (s≤ zero 5 (0≤ 5)))))))))
+
+olist2list : {l u : Nat} → OList l u → NList
+olist2list (nil x) = nil
+olist2list (cons x b l) = cons x (olist2list l)
+
+-- (10)
+
+not-refl-< : (m n : Nat) → m < n → ¬(n == m)
+not-refl-< .(succ x) .(succ x) (s< x .x m<n) refl = not-refl-< x x m<n refl
+
+decide≤ : (m n : Nat) → Decidable (m ≤ n)
+decide≤ m n with compare m n
+... | x<y mn = yes (<→≤ m n mn)
+... | x=y mm = yes (=→≤ m n mm)
+... | x>y nm = no (h n m nm ) where
+  h : (n m : Nat) → (nm : n < m) → ¬ (m ≤ n)
+  h n m nm mn with ≤→<= m n mn
+  ... | left m<n = <-not-sym m n m<n nm
+  ... | right m=n = not-refl-< n m nm m=n
+
+-- (11)
+trans≤ : (x y z : Nat) → x ≤ y → y ≤ z → x ≤ z
+trans≤ .0 y z (0≤ .y) yz = 0≤ z
+trans≤ .(succ x) .(succ y) .(succ z) (s≤ x y xy) (s≤ .y z yz) = s≤ x z (trans≤ x y z xy yz)
+
+insert : {l u : Nat}
+  → (x : Nat)
+  → {l ≤ x}
+  → {x ≤ u}
+  → OList l u
+  → OList l u
+insert {l} {u} x {lx} {xu} (nil lu) = cons x lx (nil xu)
+-- here (10)
+insert {l} {u} x {lx} {xu} (cons y ly ys) with decide≤ x y
+... | yes xy = cons x lx (cons y xy ys)
+... | no yx = cons y ly (insert y {refl≤ y} {h ys} ys)
+  where
+  h : ∀ {l} {u} → OList l u → l ≤ u
+  h {l} {u} (nil lu) = lu
+  -- here (11)
+  h {l} {u} (cons x lx xs) = trans≤ l x u lx (h xs)
+
+
+-- -------------------- Level 3b: products --------------------
 
 _*_ : Nat → Nat → Nat
 zero * y = zero
