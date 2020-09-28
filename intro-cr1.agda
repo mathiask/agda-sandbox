@@ -159,6 +159,7 @@ data _⊎_ (A B : Set) : Set where
 <=→≤ x y (left xy) = <→≤ x y xy
 <=→≤ x y (right refl) = =→≤ x x refl
 
+
 -- ==================== CS branch ====================
 
 data NList : Set where
@@ -281,17 +282,63 @@ insert : {l u : Nat}
   → {x ≤ u}
   → OList l u
   → OList l u
-insert {l} {u} x {lx} {xu} (nil lu) = cons x lx (nil xu)
+insert x {lx} {xu} (nil lu) = cons x lx (nil xu)
 -- here (10)
-insert {l} {u} x {lx} {xu} (cons y ly ys) with decide≤ x y
+insert x {lx} (cons y ly ys) with decide≤ x y
 ... | yes xy = cons x lx (cons y xy ys)
 ... | no yx = cons y ly (insert y {refl≤ y} {h ys} ys)
   where
   h : ∀ {l} {u} → OList l u → l ≤ u
-  h {l} {u} (nil lu) = lu
+  h (nil lu) = lu
   -- here (11)
   h {l} {u} (cons x lx xs) = trans≤ l x u lx (h xs)
 
+-- -------------------- Level 4a: now simplifying this a bit... ----------
+
+{- Better after a bit of logic, in particular ¬ and ⊥ -}
+
+prop : {A : Set} → Decidable A → Set
+prop (yes _) = Unit
+prop (no _) = False
+
+unProp : {A : Set} → (da : Decidable A) → prop da → A
+unProp (yes a) ∗ = a
+
+exFalso : {A : Set} → False → A
+exFalso ()
+
+evidence : {A : Set} → A → (da : Decidable A) → prop da
+evidence {A} a (yes x) = ∗
+evidence {A} a (no ¬a) = exFalso (¬a a)
+
+prop≤ = λ m n → prop (decide≤ m n)
+
+data OListP (l u : Nat) : Set where
+  nil : prop≤ l u → OListP l u
+  cons : (x : Nat) → prop≤ l x → OListP x u → OListP l u
+
+myOList2 : OListP 0 10
+myOList2 = cons 1 ∗ (cons 3 ∗ (cons 5 ∗ (nil ∗)))
+
+total≤ : ∀ {x} {y} → ¬(x ≤ y) → y ≤ x
+total≤ {x} {y} ¬xy with compare x y
+... | x<y xy = exFalso (¬xy (<→≤ x y xy))
+... | x=y refl = refl≤ x
+... | x>y yx = <→≤ y x yx
+
+insertP : {l u : Nat}
+  → (x : Nat)
+  → {prop≤ l x}
+  → {prop≤ x u}
+  → OListP l u
+  → OListP l u
+insertP x {lx} {xu} (nil lu) = cons x lx (nil xu)
+insertP x (cons y ly ys) with decide≤ x y
+insertP x {lx} (cons y ly ys) | yes xy = cons x lx (cons y (evidence xy (decide≤ x y)) ys)
+insertP x {lx} {xu} (cons y ly ys) | no ¬xy = cons y ly (insertP x {evidence (total≤ ¬xy) (decide≤ y x)} {xu} ys)
+
+myOList3 : OListP 0 10
+myOList3 = insertP 10 {∗} {∗} (insertP 7 {∗} {∗} (insertP 3 {∗} {∗} (insertP 5 {∗} {∗} (nil ∗))))
 
 -- -------------------- Level 3b: products --------------------
 
