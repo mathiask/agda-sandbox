@@ -9,4 +9,4 @@ RUN echo "(load-file (let ((coding-system-for-read 'utf-8)) (shell-command-to-st
 USER agda
 ENV LANG C.UTF-8
 
-CMD emacs
+ENTRYPOINT ["emacs"]
