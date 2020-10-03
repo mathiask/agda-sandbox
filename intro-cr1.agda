@@ -23,6 +23,8 @@ not false = true
 -- and true y = y
 -- and false y = false
 
+-- _&a_ = λ x y → and x y
+
 -- BEGIN "aside"
 _&&_ : Boole → Boole → Boole
 true && y = y
@@ -39,9 +41,17 @@ data Nat : Set where
   zero : Nat
   succ : Nat → Nat
 
+-- @CR: "suc", and:
+ℕ = Nat
+
+
+
 _+_ : Nat → Nat → Nat
 zero + y = y
 succ x + y = succ (x + y)
+
+-- @CR:
+add = λ x y → x + y
 
 two three : Nat
 two = succ (succ zero)          -- {-s 2}
@@ -50,6 +60,8 @@ three = succ (succ (succ zero)) -- {-s 3}
 -- two + three
 
 five = two + three
+
+-- @CR _*_ (see below)
 
 -- ============================================================
 
@@ -79,6 +91,11 @@ infix 10 _≡_
 
 {-# BUILTIN EQUALITY _≡_ #-}
 
+comm≡ : {A : Set} {x y : A} → x ≡ y → y ≡ x
+comm≡ refl = refl
+
+cong≡ : {A B : Set} {x y : A} {f : A → B} → x ≡ y → f x ≡ f y
+cong≡ refl = refl
 
 -------------------- Math/Logic branch: <, total order, ¬, Decidable
 
@@ -90,6 +107,29 @@ infix 15 _<_
 
 _ : succ zero < three
 _ = s< zero (succ (succ zero)) (o< (succ zero)) -- C-a
+
+0+x=x : (n : ℕ) → (add zero n) ≡ n
+0+x=x n = refl
+
+cong-succ :{x y : ℕ} → x ≡ y → succ x ≡ succ y
+cong-succ = cong≡
+
+x+0=x : (n : ℕ) → (add n zero) ≡ n
+x+0=x zero = refl
+x+0=x (succ n) rewrite x+0=x n = refl
+
+x+sy : (x y : ℕ) → add x (succ y) ≡ succ (add x y)
+x+sy zero y = refl
+x+sy (succ x) y rewrite x+sy x y = refl
+
+comm+ : (x y : ℕ) → add x y ≡ add y x
+comm+ zero zero = refl
+comm+ zero (succ y) = cong-succ (comm+ zero y)
+comm+ (succ x) zero rewrite x+0=x x = refl
+comm+ (succ x) (succ y) rewrite x+sy x y | comm+ x y | comm≡ (x+sy y x) = refl
+
+-- @CR: end of 2020-10-03 session
+
 
 data TotallyOrdered (x y : Nat) : Set where
   x<y : x < y → TotallyOrdered x y
@@ -194,9 +234,6 @@ length (cons x l) = succ (length l)
 -- BEGIN Introduce at (2)
 cong : (x y : Nat) → x == y → succ x == succ y
 cong x .x refl = refl
-
-icong : {x y : Nat} → x == y → succ x == succ y
-icong {x} {.x} refl = refl
 -- END
 
 append→add : ∀ (l1 l2 : NList) → length (append l1 l2) == (length l1) + (length l2)
@@ -431,9 +468,6 @@ timesIsProduct (succ x) y rewrite addIsAppend y (x * y)
   = refl
 
 -- ... which implies ...
-
-comm≡ : {A : Set} {x y : A} → x ≡ y → y ≡ x
-comm≡ {x=x} {y=x} refl = refl
 
 productIsTimes : (l1 l2 : List Unit) → toNat (map 1*1to1 (l1 *L l2)) ≡ (toNat l1) * (toNat l2)
 productIsTimes l1 l2 rewrite comm≡ (isoOnList* l1) | comm≡ (isoOnList* l2)
