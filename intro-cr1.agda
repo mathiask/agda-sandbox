@@ -1,31 +1,43 @@
 -- 20200915 Mathias Kegelmann
 
+-- "Start from nothing, though builtins and stdlib exist."
+-- "Just types, functions, new types, 'dependent' types..."
+
 data Boole : Set where
-  true : Boole
+  true  : Boole
   false : Boole
 
-not : Boole → Boole
+-- C-cC-n, C-d: true, Boole, Set,
+--              Boole → Boole
+
+not : Boole -> Boole
 not true = false
 not false = true
 
 -- not true
+-- "Thus C-cC-n = 'normalize'"
 
--- and : Boole → Boole → Boole
+-- "Currying"
+
+-- and : Boole -> Boole -> Boole
 -- and true y = y
 -- and false y = false
 
+-- BEGIN "aside"
 _&&_ : Boole → Boole → Boole
 true && y = y
 false && y = false
 
+-- true && true
+-- true && true && false
+-- (true && true) && false
+
+infixl 30 _&&_
+-- END "aside"
+
 data Nat : Set where
   zero : Nat
   succ : Nat → Nat
-
--- Aside: Function types are also sets
-_ : Set
-_ = Nat → Nat
-
 
 _+_ : Nat → Nat → Nat
 zero + y = y
@@ -47,7 +59,7 @@ five = two + three
 data _==_ (x : Nat) : Nat → Set where
   refl : x == x
 
-infix 4 _==_
+infix 15 _==_
 
 -- We could also compare this intentional equality to an
 -- inductively defined equality.
@@ -63,7 +75,7 @@ _ = refl
 
 data _≡_ {A : Set} (x : A) : A → Set where
   refl : x ≡ x
-infix 4 _≡_
+infix 10 _≡_
 
 {-# BUILTIN EQUALITY _≡_ #-}
 
@@ -74,7 +86,7 @@ data _<_ : Nat → Nat → Set where
   o< : (y : Nat) →  zero < succ y
   s< : (x y : Nat) → x < y → succ x < succ y
 
-infix 4 _<_
+infix 15 _<_
 
 _ : succ zero < three
 _ = s< zero (succ (succ zero)) (o< (succ zero)) -- C-a
@@ -132,6 +144,8 @@ decide< x y with compare x y
 data _≤_ : Nat → Nat → Set where
   0≤ : (y : Nat) →  zero ≤ y
   s≤ : (x y : Nat) → x ≤ y → succ x ≤ succ y
+
+infix 15 _≤_
 
 refl≤ : (x : Nat) → x ≤ x
 refl≤ zero = 0≤ zero
