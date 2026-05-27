@@ -1,12 +1,17 @@
-FROM neosimsim/agda
-LABEL maintainer="mathias.kegelmann@gmail.com"
+FROM debian:testing-slim
 
-USER root
-RUN apk add emacs
-RUN ln -s /home/agda/.cabal/bin/agda-mode /home/agda/bin
-RUN echo "(load-file (let ((coding-system-for-read 'utf-8)) (shell-command-to-string \"agda-mode locate\")))" >> /home/agda/.emacs
+RUN apt-get update && apt-get install -y \
+    agda \
+    agda-stdlib \
+    elpa-agda2-mode \
+    emacs-nox \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
+RUN useradd -m agda
 USER agda
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
+WORKDIR /home/agda
 
 ENTRYPOINT ["emacs"]
+
