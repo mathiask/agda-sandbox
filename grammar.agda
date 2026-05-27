@@ -1,4 +1,4 @@
--- 20201204 Mathias Kegelmann - Grammer Implementation in Agda
+-- 20201204 Mathias Kegelmann - Grammar Implementation in Agda
 
 -- import Data.List
 --   using
